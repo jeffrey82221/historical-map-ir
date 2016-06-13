@@ -3,22 +3,20 @@ library(leaflet)
 library(RColorBrewer)
 library(shinythemes)
 
-ui <- bootstrapPage(
-        theme = shinytheme("cosmo"),
-        title = "Taiwan Historical Map",
-        tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
-        leafletOutput("map", width = "100%", height = "100%"),
-        absolutePanel(top = 100, right = 30,
-                      draggable = FALSE,
-                      sliderInput("range", "Years", 1800, 2000,
-                                  value = c(1800,2000), step = 10
-                      ),
-                      checkboxInput("legend", "Show Scatter Diagram", FALSE)
-        ),
-        absolutePanel(top = 20, right = 42,
-                      titlePanel(h2("Taiwan Historical Map"))
-        )
-      )
+df_history <- read.csv("emap_A.csv")
+df_history <- df_history[,c("name_tw","lat","lng","size_check","owner","years","website","address")]
+df_history[,"size_check"] <- df_history[,"size_check"]/64
+
+df_history[,"years"] <- as.numeric(gsub("([0-9]+).*$", "\\1", df_history[,"years"]))
+df_history[which(is.na(df_history[,"years"])),"years"] <- 2000
+
+m = leaflet(df_history) %>% addTiles()
+
+owner <- unique(df_history[,"owner"])
+RdYlBu = colorFactor("Spectral", owner)
+
+# m %>% addCircleMarkers(~lng, ~lat, radius = ~size_check,
+#                        color = ~RdYlBu(owner), fillOpacity = 0.5)
 
 server <- function(input, output, session) {
   filteredData <- reactive({
@@ -38,7 +36,7 @@ server <- function(input, output, session) {
       catego <- unique(df_history$owner)
       proxy %>% addLegend(position = "bottomright", colors = RdYlBu(catego),
                           labels = catego
-                         )
+      )
       
       leafletProxy("map", data = filteredData()) %>%
         clearShapes() %>% clearMarkerClusters() %>%
@@ -59,7 +57,3 @@ server <- function(input, output, session) {
     }
   })
 }
-
-shinyApp(ui, server)
-library(rsconnect)
-deployApp(ui, server)
