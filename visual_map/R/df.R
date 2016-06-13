@@ -1,5 +1,0 @@
-library(leaflet)
-library(shiny)
-library(rsconnect)
-runApp()
-deployApp(appName="Taiwan_Historical_Map")
